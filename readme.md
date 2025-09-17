@@ -27,8 +27,7 @@ O processo coleta informações de Pokémons, detalhes individuais e histórico 
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/seu-repo.git
-cd seu-repo
+git clone https://github.com/PhillypeAquino/Raizen.git
 ```
 
 ### 2. Criar ambiente virtual e instalar dependências
@@ -60,7 +59,9 @@ API_PASSWORD=sua_senha
 ---
 
 ## ▶️ Execução
-
+```bash
+O comando deve ser rodado de forma sequencial, tendo primeiro extraido os arquivos para, depois, realizar a construcao do dashboard
+```
 ### Rodar o ETL via `main.py`
 
 ```bash
