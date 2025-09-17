@@ -42,7 +42,7 @@ def load_data(proc_dir: Path):
         df_poke = pd.DataFrame(columns=["id","name"])
     else:
         df_poke = pd.read_csv(poke_path, dtype={"id":"Int64","name":"string"})
-
+        df_poke = df_poke.map(lambda x: x.strip() if isinstance(x, str) else x)
     if comb_path.exists():
         df_comb = pd.read_csv(
             comb_path,
@@ -52,6 +52,7 @@ def load_data(proc_dir: Path):
         df_comb = pd.DataFrame(columns=["first_pokemon_id","second_pokemon_id","winner_id"])
 
     df_detl = pd.read_csv(detl_path) if detl_path.exists() else pd.DataFrame()
+    df_detl = df_detl.map(lambda x: x.strip() if isinstance(x, str) else x)
     return df_poke, df_comb, df_detl
 
 df_poke, df_comb, df_detl = load_data(PROC)
