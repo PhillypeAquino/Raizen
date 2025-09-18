@@ -30,6 +30,62 @@ def find_processed_dir(start: Path, max_up: int = 3) -> Path:
 
 HERE = Path(__file__).resolve().parent
 PROC = find_processed_dir(HERE)
+# === Helpers de limpeza ===
+def _strip_df_strings(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    obj_cols = df.select_dtypes(include=["object", "string"]).columns
+    for c in obj_cols:
+        df[c] = df[c].astype("string").str.strip()
+    return df
+
+def _clean_frames(df_poke: pd.DataFrame, df_comb: pd.DataFrame, df_detl: pd.DataFrame):
+    # ---- pokemons ----
+    if not df_poke.empty:
+        df_poke = _strip_df_strings(df_poke)
+        df_poke["id"] = pd.to_numeric(df_poke["id"], errors="coerce").astype("Int64")
+        df_poke = (df_poke
+                   .dropna(subset=["id"])
+                   .drop_duplicates(subset=["id"])
+                   .reset_index(drop=True))
+
+    # ---- details ----
+    if not df_detl.empty:
+        df_detl = _strip_df_strings(df_detl)
+        if "id" in df_detl.columns:
+            df_detl["id"] = pd.to_numeric(df_detl["id"], errors="coerce").astype("Int64")
+            df_detl = df_detl.dropna(subset=["id"])
+        # normalizações opcionais, só se existirem:
+        if "generation" in df_detl.columns:
+            df_detl["generation"] = (df_detl["generation"]
+                                     .replace({"Gen1":1,"Gen2":2,"Gen3":3,"Gen4":4,"Gen5":5,"Gen6":6})
+                                     .pipe(lambda s: pd.to_numeric(s, errors="coerce")))
+        if "legendary" in df_detl.columns:
+            df_detl["legendary"] = df_detl["legendary"].replace({"No": False })
+
+    # ---- combats ----
+    if not df_comb.empty:
+        for c in ["first_pokemon_id", "second_pokemon_id", "winner_id"]:
+            if c in df_comb.columns:
+                df_comb[c] = pd.to_numeric(df_comb[c], errors="coerce").astype("Int64")
+
+        # remove nulos nas relações chave
+        df_comb = df_comb.dropna(subset=["first_pokemon_id", "second_pokemon_id", "winner_id"])
+
+        # winner precisa ser um dos dois lados
+        df_comb = df_comb[
+            (df_comb["winner_id"] == df_comb["first_pokemon_id"]) |
+            (df_comb["winner_id"] == df_comb["second_pokemon_id"])
+        ]
+
+        # mantém só combates cujos IDs existem na tabela de pokemons
+        valid_ids = set(df_poke["id"].dropna().astype("Int64")) if not df_poke.empty else set()
+        if valid_ids:
+            df_comb = df_comb[
+                df_comb["first_pokemon_id"].isin(valid_ids) &
+                df_comb["second_pokemon_id"].isin(valid_ids)
+            ].reset_index(drop=True)
+
+    return df_poke, df_comb, df_detl
 
 @st.cache_data(show_spinner=False)
 def load_data(proc_dir: Path):
@@ -42,7 +98,6 @@ def load_data(proc_dir: Path):
         df_poke = pd.DataFrame(columns=["id","name"])
     else:
         df_poke = pd.read_csv(poke_path, dtype={"id":"Int64","name":"string"})
-        df_poke = df_poke.map(lambda x: x.strip() if isinstance(x, str) else x)
     if comb_path.exists():
         df_comb = pd.read_csv(
             comb_path,
@@ -52,7 +107,10 @@ def load_data(proc_dir: Path):
         df_comb = pd.DataFrame(columns=["first_pokemon_id","second_pokemon_id","winner_id"])
 
     df_detl = pd.read_csv(detl_path) if detl_path.exists() else pd.DataFrame()
-    df_detl = df_detl.map(lambda x: x.strip() if isinstance(x, str) else x)
+    df_detl["generation"] = df_detl["generation"].replace({"Gen2": 2})
+    df_detl["legendary"] = df_detl["legendary"].replace({"No": "False"})
+    
+    df_poke, df_comb, df_detl = _clean_frames(df_poke, df_comb, df_detl)
     return df_poke, df_comb, df_detl
 
 df_poke, df_comb, df_detl = load_data(PROC)
@@ -125,7 +183,6 @@ id_range = st.sidebar.slider("Faixa de ID", min_value=id_min, max_value=id_max, 
 min_apps = st.sidebar.number_input("Mínimo de aparições", min_value=0, value=5, step=1)
 wr_min, wr_max = st.sidebar.slider("Win rate (%)", 0, 100, (0, 100))
 order_by = st.sidebar.selectbox("Ordenar por", ["win_rate", "wins", "appearances"])
-top_n = st.sidebar.slider("Limite de linhas (Top N)", 5, 100, 20)
 
 type_filter = []
 if not types_map.empty:
@@ -157,7 +214,6 @@ else:
         # agrupa por id caso tenha duplicado por múltiplos tipos
         df = df.groupby(["id","name","wins","appearances","win_rate"], as_index=False).first()
 
-    df = df.sort_values([order_by, "appearances"], ascending=[False, False]).head(top_n)
 
     # Cards de métricas
     c1, c2, c3, c4 = st.columns(4)

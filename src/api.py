@@ -109,13 +109,13 @@ def fetch_all_items(api: API, base_path: str, list_key: str) -> list[dict]:
     page = data0.get("page", 1)
     per_page = 50
     total = data0.get("total", None)
-    print(total)
+    print('paginas totais:',total)
     items.extend(data0[list_key])
 
     # 2) Pagina mantendo per_page retornado
     while True:
         next_page = page + 1
-        print("tentando em ", base_path, page)
+        print("extrainddo dados de ", base_path, page)
         time.sleep(0.01)  # reduz 429
         data = api.get(base_path, params={"page": next_page, "per_page": per_page})
         chunk = data.get(list_key, [])
@@ -136,28 +136,13 @@ def fetch_pokemon_detail(api: API, pokemon_id: int | str) -> dict:
     """
     pid = int(pokemon_id)
 
-    for path in (f"/pokemon/{pid}"):
-        try:
-            data = api.get(path)
-        except httpx.HTTPStatusError as e:
-            # se esse path não existe, tenta o próximo
-            if e.response is not None and e.response.status_code == 404:
-                continue
-            # outros erros (429/5xx) seguem para o backoff do client
-            raise
+    pid = int(pokemon_id)
+    data = api.get(f"/pokemon/{pid}")
+    detail = data.get("pokemon", data) if isinstance(data, dict) else {}
+    detail.setdefault("id", pid)
 
-        # normaliza a resposta
-        if isinstance(data, dict):
-            detail = data.get("pokemon", data)  # usa 'pokemon' se existir; senão, o próprio dict
-            if "id" not in detail:
-                detail["id"] = pid
-            return detail
+    return detail
 
-        # formato inesperado: devolve mínimo para não quebrar
-        return {"id": pid}
-
-    # nenhum dos paths existia
-    return {"id": pid}
 def fetch_all_pokemon_details(api: API, pokemons: list[dict], pause: float = 0.05) -> list[dict]:
     """
     Para cada Pokémon da lista (que tem 'id'), busca o detalhe em /pokemon/{id} (fallback /pokemons/{id}).
@@ -175,7 +160,7 @@ def fetch_all_pokemon_details(api: API, pokemons: list[dict], pause: float = 0.0
         details.append(det)
 
         if i % 100 == 0:
-            print(f"...detalhes coletados: {i}", flush=True)
+            print(f"...atributos coletados: {i}", flush=True)
         time.sleep(pause)  # educação com a API
     return details
 

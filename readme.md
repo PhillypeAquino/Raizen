@@ -9,8 +9,9 @@ O processo coleta informações de Pokémons, detalhes individuais e histórico 
 
 ```
 .
-├── app/                  # (se usar interface Streamlit)
-├── data/
+├── app/ # (se usar interface Streamlit)
+│   └── app.py    # streamlit run app/app.py       
+├── data/    
 │   ├── raw/              # Dados brutos em JSON
 │   └── processed/        # Dados tratados em CSV
 ├── main.py               # Ponto de entrada (opcional)
