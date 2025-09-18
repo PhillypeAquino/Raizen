@@ -2,7 +2,6 @@
 
 Este projeto implementa um **pipeline ETL (Extract, Transform, Load)** para consumir dados de uma API de Pokémons.  
 O processo coleta informações de Pokémons, detalhes individuais e histórico de combates, salva os dados brutos em JSON e gera versões processadas em CSV.
-
 ---
 
 ## 📂 Estrutura de pastas
@@ -60,9 +59,7 @@ API_PASSWORD=sua_senha
 ---
 
 ## ▶️ Execução
-```bash
-O comando deve ser rodado de forma sequencial, tendo primeiro extraido os arquivos para, depois, realizar a construcao do dashboard
-```
+
 ### Rodar o ETL via `main.py`
 
 ```bash

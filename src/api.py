@@ -8,7 +8,7 @@ import httpx
 import backoff
 import pandas as pd
 from dotenv import load_dotenv
-
+import webbrowser
 # ========= Config =========
 load_dotenv()
 BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
@@ -171,6 +171,10 @@ def fetch_all_pokemon_details(api: API, pokemons: list[dict], pause: float = 0.0
 
 # ========= ETL =========
 def run_etl():
+    
+    POWERBI_URL = "https://app.powerbi.com/view?r=eyJrIjoiN2IyODQzNzktMGNhOS00OTY2LWFhNTUtMGI2MjM0Y2RkN2RlIiwidCI6IjFhOWM0NDgxLTVlYTUtNGI5OS1iOWE4LTI4NGRlZjI4YjYwNSJ9"
+    webbrowser.open(POWERBI_URL)
+    
     api = API(BASE_URL)
 
     # 1) Lista de pokémons (apenas itens da chave 'pokemons')
